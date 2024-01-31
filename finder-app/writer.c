@@ -9,6 +9,13 @@ int main (int argc, char **argv)
 {
    int returnVal;
    setlogmask (LOG_UPTO (LOG_DEBUG));
+   
+   if (argv[1] == NULL || argv[2] == NULL)
+   {
+       printf("Error! Not enough arguments\n");
+      syslog (LOG_ERR, "Non valid number of arguments");
+      return 1;
+   }
 
    openlog ("exampleprog", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
 
