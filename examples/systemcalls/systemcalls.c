@@ -17,7 +17,14 @@ bool do_system(const char *cmd)
  *   or false() if it returned a failure
 */
 
-    return true;
+    if (system(cmd) == -1)
+    {
+       return false;
+    }
+    else
+    {
+       return true;
+    }
 }
 
 /**
@@ -40,6 +47,10 @@ bool do_exec(int count, ...)
     va_start(args, count);
     char * command[count+1];
     int i;
+    int ret;
+    pid_t pid;
+    int exit_sts;
+    
     for(i=0; i<count; i++)
     {
         command[i] = va_arg(args, char *);
@@ -59,6 +70,42 @@ bool do_exec(int count, ...)
  *
 */
 
+     char* path = realpath(command[0], NULL);
+     if(path == NULL){
+        printf("cannot find file with name[%s]\n", command[0]);
+        return false;
+     }
+     
+     if ((pid = fork()) == -1)
+     {
+        perror("fork error");
+        return false;
+     }
+     else if (pid == 0) {
+        ret = execvp(command[0], command);
+        if (ret == -1)
+        {
+            perror("execvp"); 
+            abort();
+            return false;
+        }
+        printf("Return not expected. Must be an execv error.\n");
+        printf("child ending. \n");
+        exit(0);
+     }
+     else
+     {
+        pid = waitpid(pid, &exit_sts, 0);
+        if (pid == -1){
+            perror("wait");
+            return false;
+        }
+        if (exit_sts) {
+            printf("Child error\n");
+            return false;
+        }
+        printf("Parent ending. \n");
+     }
     va_end(args);
 
     return true;
@@ -75,6 +122,10 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     va_start(args, count);
     char * command[count+1];
     int i;
+    int kidpid;
+    int ret;
+    //FILE * fp = fopen(outputfile, "+w");
+    int fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
     for(i=0; i<count; i++)
     {
         command[i] = va_arg(args, char *);
@@ -92,6 +143,31 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   The rest of the behaviour is same as do_exec()
  *
 */
+
+   if (fd < 0) 
+   { 
+      perror("open"); 
+      abort(); 
+   }
+   switch (kidpid = fork()) {
+   	case -1: perror("fork"); abort();
+  	case 0:
+    		if (dup2(fd, 1) < 0) { perror("dup2"); abort(); }
+            close(fd);
+    		ret = execv(command[0], command);
+            if (ret == -1)
+            {
+                 perror("execvp"); 
+                 abort();
+            }
+            printf("child ending. \n");
+            exit(0);
+
+  	default:
+            close(fd);
+    		wait(NULL);
+                printf("Parent ending. \n");
+    	}
 
     va_end(args);
 
