@@ -102,9 +102,9 @@ cp ${LIBS_PATH}/aarch64-none-linux-gnu/libc/lib64/libc.so.6 ./lib64/
 
 
 # TODO: Make device nodes
-cd "${OUTDIR}/rootfs"
-sudo mknod -m 666 dev/null c 1 3
-sudo mknod -m 666 dev/console c 5 1
+#cd "${OUTDIR}/rootfs"
+#sudo mknod -m 666 dev/null c 1 3
+#sudo mknod -m 666 dev/console c 5 1
 
 # TODO: Clean and build the writer utility
 echo "Building writer"
