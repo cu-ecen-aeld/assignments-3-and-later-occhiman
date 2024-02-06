@@ -12,8 +12,12 @@ BUSYBOX_VERSION=1_36_1
 FINDER_APP_DIR=$(realpath $(dirname $0))
 ARCH=arm64
 CROSS_COMPILE=aarch64-none-linux-gnu-
-LIBS_PATH=/home/ochiman/arm-cross-compiler/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/aarch64-none-linux-gnu/libc
 WRITER_PATH=${PWD}
+LIBS_PATH=$(which ${CROSS_COMPILE}gcc)
+
+#Path to the Cross compiler libraries
+LIBS_PATH=${LIBS_PATH%/*}
+LIBS_PATH=${LIBS_PATH%/*}
 
 if [ $# -lt 1 ]
 then
@@ -91,10 +95,10 @@ ${CROSS_COMPILE}readelf -a "${OUTDIR}/rootfs/bin/busybox" | grep "Shared library
 # TODO: Add library dependencies to rootfs
 cd ${OUTDIR}/rootfs
 echo "Copying libraries"
-cp ${LIBS_PATH}/lib/ld-linux-aarch64.so.1 ./lib/
-cp ${LIBS_PATH}/lib64/libm.so.6 ./lib64/
-cp ${LIBS_PATH}/lib64/libresolv.so.2 ./lib64/
-cp ${LIBS_PATH}/lib64/libc.so.6 ./lib64/
+cp ${LIBS_PATH}/aarch64-none-linux-gnu/libc/lib/ld-linux-aarch64.so.1 ./lib/
+cp ${LIBS_PATH}/aarch64-none-linux-gnu/libc/lib64/libm.so.6 ./lib64/
+cp ${LIBS_PATH}/aarch64-none-linux-gnu/libc/lib64/libresolv.so.2 ./lib64/
+cp ${LIBS_PATH}/aarch64-none-linux-gnu/libc/lib64/libc.so.6 ./lib64/
 
 
 # TODO: Make device nodes
