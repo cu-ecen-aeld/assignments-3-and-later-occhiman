@@ -20,7 +20,7 @@ void intHandler(int dummy) {
     {
         syslog(LOG_DEBUG,"unable to delete aesdsocket tmp file\n");
     }
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 int runServer (void)
