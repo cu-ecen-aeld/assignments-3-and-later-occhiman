@@ -11,6 +11,12 @@ int xfer_data_server(int srcfd, int tgtfd)
     size_t ret;
     FILE *fp;
     unsigned char fileOpenFlag = 0;
+    pthread_mutex_t *server_mutex;
+
+    server_mutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
+    
+    //memset(server_mutex,0u,sizeof(pthread_mutex_t));
+    pthread_mutex_init(server_mutex, NULL);
     
     /* Read socket data until socket connection is broken */
     while ((count = read(srcfd, (void *) buf, sizeof(buf))) > 0)
@@ -19,6 +25,14 @@ int xfer_data_server(int srcfd, int tgtfd)
        if (len < 0)
         {
            perror("helper.c:xfer_data:read");
+           exit(EXIT_FAILURE);
+        }
+
+        // obtain mutex
+        if ( pthread_mutex_lock(server_mutex) != 0 ) 
+        {
+           ERROR_LOG ("pthread_mutex_lock failed");
+           perror("Server Mutex log failed \n");
            exit(EXIT_FAILURE);
         }
         
@@ -47,7 +61,7 @@ int xfer_data_server(int srcfd, int tgtfd)
         size = ftell(fp) - prev;
         fseek(fp,prev,SEEK_SET);
 
-        readBuf = (char *) malloc (size);
+        readBuf = (char *) calloc(size,sizeof(char));
         if (readBuf == NULL)
         {
            printf("Memory not allocated.\n");
@@ -78,6 +92,18 @@ int xfer_data_server(int srcfd, int tgtfd)
             perror("helper.c:xfer_data:write");
             exit(EXIT_FAILURE);
         }
+        
+        // release mutex  
+        if ( pthread_mutex_unlock(server_mutex) != 0 ) 
+        {
+           ERROR_LOG("pthread_mutex_unlock failed");
+           perror("Server mutex unlock failed\n");
+           exit(EXIT_FAILURE);
+        }
+
+        DEBUG_LOG("pthread_mutex unlock successfull");
+
+        pthread_mutex_destroy(server_mutex);
         
         free(readBuf);
 
