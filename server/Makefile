@@ -7,7 +7,7 @@ CC := gcc
 CFLAGS := -g
 
 all : server.c helper_server.c helper_server.h
-	${CROSS_COMPILE}$(CC)  -o aesdsocket server.c helper_server.c
+	${CROSS_COMPILE}$(CC) -o aesdsocket server.c helper_server.c helper_server.h
 	 
 clean :
 	rm -f aesdsocket
