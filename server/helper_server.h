@@ -23,9 +23,8 @@
 
  struct entry {
            bool completed;
-           char spare;
            int  socket_descriptor;
-           long int data;
+           pthread_t *data;
            pthread_mutex_t mutex;
            SLIST_ENTRY(entry) entries;              /* List */
 };

@@ -42,14 +42,6 @@ void* threadfunc(void* thread_param)
         exit(EXIT_FAILURE);
     }
 
-    // obtain mutex
-    //if ( pthread_mutex_lock(&thread_func_args->mutex) != 0 ) 
-    //{
-      //  ERROR_LOG ("pthread_mutex_lock failed");
-        //exit(EXIT_FAILURE);
-        //usleep(10);
-    //}
-
     fd = open("/var/tmp/aesdsocketdata", O_WRONLY | O_APPEND, 0644);
     if (fd < 0)
     {
@@ -68,15 +60,6 @@ void* threadfunc(void* thread_param)
 
     DEBUG_LOG("Succesfull socket Rx/Tx transaction");
     thread_func_args->completed = true;
-
-    // release mutex  
-    //if ( pthread_mutex_unlock(&thread_func_args->mutex) != 0 ) 
-    //{
-      //  ERROR_LOG ("pthread_mutex_unlock failed");
-        //exit(EXIT_FAILURE);
-    //}
-
-    //DEBUG_LOG("pthread_mutex unlock successfull");
 
     close(fd);
 
@@ -114,14 +97,9 @@ static void timer_thread ( union sigval sigval )
         exit(EXIT_FAILURE);
     }
 
-    printf("Result string is \"%s\"", outstr);
+    //printf("Result string is \"%s\"", outstr);
+    DEBUG_LOG(outstr);
     //printf("Size is \"%d\"", str_size);
-
-    //if ( pthread_mutex_lock(&td->lock) != 0 ) 
-    //{
-      //  perror("Mutex lock error\n");
-        //exit(EXIT_FAILURE);
-    //} 
 
     fp = fopen ("/var/tmp/aesdsocketdata","r+");
     if (fp == NULL)
@@ -143,31 +121,6 @@ static void timer_thread ( union sigval sigval )
             exit(EXIT_FAILURE);
     }
  
-#if 0
-        fd = open("/var/tmp/aesdsocketdata", O_WRONLY| O_CREAT| O_APPEND, 0644);
-        if (fd < 0)
-        {
-           perror("Open file file error");
-           exit(EXIT_FAILURE);
-        }
-
-        /* Print timestamp in tmp file */
-        if(write (fd, outstr, str_size) != str_size)
-        {
-            perror("helper.c:xfer_data:write");
-            exit(EXIT_FAILURE);
-        }
-
-#endif
-
-    //if ( pthread_mutex_unlock(&td->lock) != 0 ) {
-      //  perror("Mutex unlock error \n");
-        //exit(EXIT_FAILURE);
-    //}
-
-    //printf("Timer mutex successfully unlocked \n");
-
-    //close(fd);
     fclose(fp);
  
     
@@ -189,6 +142,7 @@ int runServer (void)
     bool firstConnectionDne = false;
     void *retVal;
     int numOfThreads = 0;
+    int s;
 
     SLIST_INIT(&head);                       /* Initialize the list */
     
@@ -253,22 +207,16 @@ int runServer (void)
             printf("Malloc Error\n");
             exit(EXIT_FAILURE);
         }
-        /* Initialize connection completed flag & data */
-        //memset((bool *) connection_entry->completed, 0, sizeof(connection_entry->completed) );
-
-        //connection_entry->data = 0;
-        //connection_entry->socket_descriptor = 0;
-        //connection_entry->completed = 0;
+        /* Initialize connection completed flag */
+        connection_entry->completed = false;
         
         /* First connection flag check */
         if (firstConnectionDne == false)
         {    
-
+            
             /* Insert at the head */
             SLIST_INSERT_HEAD(&head, connection_entry, entries);
-
-            connection_entry->socket_descriptor = dataAtchivDescriptor;
-            previous_connection = connection_entry;
+            printf("New head in list was inserted \n");
 
             firstConnectionDne = true;
             
@@ -277,12 +225,13 @@ int runServer (void)
         {
            
            /* Insert after */
-           
            SLIST_INSERT_AFTER(previous_connection, connection_entry, entries);
-           connection_entry-> socket_descriptor = dataAtchivDescriptor;
-           previous_connection = connection_entry;
            
         }
+
+        connection_entry->socket_descriptor = dataAtchivDescriptor;
+        /* backup actual connection */
+        previous_connection = connection_entry;
 
         thread = (pthread_t *)malloc(sizeof(pthread_t));
         if (thread == NULL)
@@ -291,69 +240,46 @@ int runServer (void)
             exit(EXIT_FAILURE);
         }
 
-        memset(thread,0,sizeof(pthread_t));
-
         // start the thread         
         rc = pthread_create(thread, NULL, threadfunc, (void *) connection_entry);
         if (rc != 0)
         {
             ERROR_LOG("Error creating thread");
-            return false;
+            perror("Error creating thread");
+            exit(EXIT_FAILURE);
         }
         DEBUG_LOG("Thread created");
-        connection_entry->data = (long int) thread; 
+        connection_entry->data = thread; 
 
-        //printf("Started thread with id %ld\n",connection_entry->data);
+        //printf("Started thread with id %ld\n",(long int) connection_entry->data);
 
-        //For thread in list
-        SLIST_FOREACH(connection_entry, &head, entries)
+        /* Set the first element on the list */
+        actual_connection = SLIST_FIRST(&head);
+        numOfThreads = 0;
+        /* For thread in list */
+        SLIST_FOREACH(actual_connection, &head, entries)
         {
-            printf("Thread id found: %ld\n", connection_entry->data);
+            printf("Thread id found: %ld\n", (long int)actual_connection->data);
             // check for completed flag
-            if (connection_entry->completed == true)
+            if (actual_connection->completed == true)
             {
                 // call pthread_join
-                if (pthread_join(*thread, &retVal) != 0) 
+                s = pthread_join(*actual_connection->data, &retVal);
+                if ( s != 0) 
                 {
-                    perror("pthread_create() error");
+                    errno = s;
+                    perror("pthread_join() error");
                     exit(EXIT_FAILURE);
                 }
-                    
+
+                actual_connection->completed = false;   
                 printf("Rx/Tx session finshed, thread exited \n");
             }
             numOfThreads++;
 
         }
 
-        //SLIST_FOREACH_SAFE(connection_entry, &head, entries);
         printf ("Number of threads:%d\n", numOfThreads);
-
-        actual_connection = SLIST_FIRST(&head);
-        if (actual_connection->completed == true)
-        {
-           SLIST_REMOVE_HEAD(&head, entries);
-           actual_connection->completed = false;
-           free(actual_connection);
-           numOfThreads--;
-           firstConnectionDne = false;
-        }
-
-        while (numOfThreads > 1u)
-        {
-            actual_connection = SLIST_NEXT(actual_connection, entries);
-
-            if (actual_connection->completed == true)
-            {
-                SLIST_REMOVE(&head, actual_connection, entry, entries);
-                actual_connection->completed = false;
-                free(actual_connection);
-            }
-
-            numOfThreads--;
-
-        }
-        SLIST_INIT(&head);
-        free(connection_entry);
 
     } /* while(1) */
 
@@ -421,61 +347,6 @@ int main(int argc, char *argv[])
     timer_t timerid;
 
     memset(&td,0,sizeof(struct thread_data));
-#if(0)
-
-    td = (struct thread_data *) malloc(sizeof(struct thread_data));
-    if (td == NULL)
-    {
-        printf("Malloc error \n");
-        exit(EXIT_FAILURE);
-    }
-
-    timerid = (timer_t *) malloc (sizeof(timer_t));
-    if (timerid == NULL)
-    {
-        printf("Malloc error \n");
-        exit(EXIT_FAILURE);
-    }
-    memset(&td,0,sizeof(struct thread_data));
-    if ( pthread_mutex_init(&td.lock,NULL) != 0 ) {
-        printf("Error %d (%s) initializing thread mutex!\n",errno,strerror(errno));
-        exit(EXIT_FAILURE);
-    } else {
-        int clock_id = CLOCK_MONOTONIC;
-        memset(&sev,0,sizeof(struct sigevent));
-        
-        struct itimerspec its = {   .it_value.tv_sec  = 10,
-                                .it_value.tv_nsec = 0,
-                                .it_interval.tv_sec  = 10,
-                                .it_interval.tv_nsec = 0
-                            };
-        
-        /**
-        * Setup a call to timer_thread passing in the td structure as the sigev_value
-        * argument
-        */
-        sev.sigev_notify = SIGEV_THREAD;
-        sev.sigev_value.sival_ptr = &td;
-        sev.sigev_notify_function = timer_thread;
-        if ( timer_create(clock_id,&sev,&timerid) != 0 ) {
-            printf("Error %d (%s) creating timer!\n",errno,strerror(errno));
-            exit(EXIT_FAILURE);
-           
-        } else {
-
-            printf("timer was sucessfully created \n");
-            
-            /* start timer */
-            res = timer_settime(timerid, 0, &its, NULL);
-            if (res != 0)
-            {
-                fprintf(stderr, "Error timer_settime: %s\n", strerror(errno));
-                exit(EXIT_FAILURE);
-            }
-            
-        }
-    }
-#endif
     
     if (argc < 2)
     {
