@@ -6,8 +6,8 @@ ARCH ?= arm64
 CC := gcc
 CFLAGS := -g
 
-all : server.c helper_server.c helper_server.h
-	${CROSS_COMPILE}$(CC) -o aesdsocket server.c helper_server.c helper_server.h
+all : server.c helper_server.c
+	$(CC) -o aesdsocket server.c helper_server.c
 	 
 clean :
 	rm -f aesdsocket
