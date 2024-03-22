@@ -7,6 +7,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include  <signal.h>
+#include <pthread.h>
+#include <time.h>
 #include "helper_server.h"
 
 
