@@ -21,7 +21,8 @@ KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 PWD       := $(shell pwd)
 
 modules:
-	$(MAKE) CROSS_COMPILE=x86_64-linux-gnu- -C $(KERNELDIR) M=$(PWD) modules
+	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
+#	$(MAKE) CROSS_COMPILE=x86_64-linux-gnu- -C $(KERNELDIR) M=$(PWD) modules
 
 endif
 
