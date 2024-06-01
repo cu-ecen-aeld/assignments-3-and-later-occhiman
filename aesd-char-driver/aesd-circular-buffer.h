@@ -10,6 +10,8 @@
 
 #ifdef __KERNEL__
 #include <linux/types.h>
+#include <linux/slab.h>
+#include <linux/errno.h>
 #else
 #include <stddef.h> // size_t
 #include <stdint.h> // uintx_t
@@ -20,6 +22,14 @@
 #endif
 
 #define AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED 10
+
+#  ifdef __KERNEL__
+     /* This one if debugging is on, and kernel space */
+#    define PDEBUG(fmt, args...) printk( KERN_DEBUG "aesdchar: " fmt, ## args)
+#  else
+     /* This one for user space */
+#    define PDEBUG(fmt, args...) fprintf(stderr, fmt, ## args)
+#  endif
 
 struct aesd_buffer_entry
 {

@@ -9,11 +9,15 @@
 #include  <signal.h>
 #include "helper_server.h"
 
+//static const char workfile[] = {"/var/tmp/aesdsocketdata"};
+static const char workfile[] = {"/dev/aesdchar"};
+
 
 void intHandler(int dummy) {
     syslog(LOG_DEBUG, "Caught signal, exiting");
 
-    if (remove("/var/tmp/aesdsocketdata") == 0)
+    /*
+    if (remove(workfile) == 0)
     {
         syslog(LOG_DEBUG,"aesdsocket tmp file was deleted\n");
     }
@@ -21,6 +25,7 @@ void intHandler(int dummy) {
     {
         syslog(LOG_DEBUG,"unable to delete aesdsocket tmp file\n");
     }
+    */
     exit(EXIT_SUCCESS);
 }
 
@@ -42,7 +47,7 @@ void* threadfunc(void* thread_param)
         exit(EXIT_FAILURE);
     }
 
-    fd = open("/var/tmp/aesdsocketdata", O_WRONLY | O_APPEND, 0644);
+    fd = open(workfile, O_WRONLY | O_APPEND, 0644);
     if (fd < 0)
     {
         perror("Open file file error");
@@ -101,7 +106,7 @@ static void timer_thread ( union sigval sigval )
     DEBUG_LOG(outstr);
     //printf("Size is \"%d\"", str_size);
 
-    fp = fopen ("/var/tmp/aesdsocketdata","r+");
+    fp = fopen (workfile,"r+");
     if (fp == NULL)
     {
         perror("Open file file error\n");
@@ -173,7 +178,7 @@ int runServer (void)
     }
 
     /* clean tmp file */
-    fd = open("/var/tmp/aesdsocketdata", O_WRONLY| O_CREAT | O_TRUNC, 0644);
+    fd = open(workfile, O_WRONLY| O_CREAT | O_TRUNC, 0644);
     if (fd < 0)
     {
        perror("Open file file error");
@@ -351,12 +356,14 @@ int main(int argc, char *argv[])
     if (argc < 2)
     {
         /* defaul normal process execution*/
+        /*
         ret = timer_setup(timerid, td);
         if (ret)
         {
             perror("timer setup error\n");
             exit(EXIT_FAILURE);
         }
+        */
         ret = runServer();
     }
     else
@@ -373,12 +380,14 @@ int main(int argc, char *argv[])
             case 0:
             /* child code here*/
             printf("Child deamon execution \n");
+            /*
             ret = timer_setup(timerid, td);
             if (ret)
             {
                perror("timer setup error\n");
                exit(EXIT_FAILURE);
             }
+            */
             
             ret = runServer();
             exit(ret);

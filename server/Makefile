@@ -3,7 +3,8 @@
 #
 
 ARCH ?= arm64
-CC ?= ${CROSS_COMPILE}gcc
+#CROSS_COMPILE := aarch64-none-linux-gnu-
+CC := ${CROSS_COMPILE}gcc
 CFLAGS ?= -g
 LDFLAGS ?= -pthread -lpthread
 

@@ -10,6 +10,7 @@
 
 #ifdef __KERNEL__
 #include <linux/string.h>
+#include <linux/printk.h>
 #else
 #include <string.h>
 #endif
@@ -41,11 +42,14 @@ struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct
 
     if (buffer == NULL)
     {
-      perror("Null pointer");
-      exit(EXIT_FAILURE);
+      //perror("Null pointer");
+      PDEBUG("Null pointer\n");
+      //exit(EXIT_FAILURE);
+      return NULL;
     }
 
-    ptrRet = (struct aesd_buffer_entry*) malloc(sizeof(struct aesd_buffer_entry));
+    //ptrRet = (struct aesd_buffer_entry*) malloc(sizeof(struct aesd_buffer_entry));
+    ptrRet = (struct aesd_buffer_entry*) kmalloc(sizeof(struct aesd_buffer_entry), GFP_KERNEL);
 
    while ((offset_count < char_offset) && (byte_pos < AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED -1u))
    {
@@ -70,7 +74,7 @@ struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct
     	// if offset (0) + SUB_BYTE_POS (7) < offset (0) + buffer[tail] (7)
         if ((offset_count + sub_byte_pos) < (offset_count + buffer->entry[byte_pos].size) )
         {
-        	printf("The sub-byte position is: %d\n", sub_byte_pos);
+        	PDEBUG("The sub-byte position is: %d\n", sub_byte_pos);
     		//the element will be in actual buffer[byte_pos]
     		//calculate sub-byte position
 
@@ -85,10 +89,9 @@ struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct
 
     }
 
-    printf("The byte position is: %d\n", byte_pos);
-    printf("The value is: %s\n", ptrRet->buffptr);
-    printf("The size is: %ld\n", ptrRet->size);
-    //ptrRet = (struct aesd_buffer_entry*) &buffer->entry[byte_pos];
+    PDEBUG("The byte position is: %d\n", byte_pos);
+    PDEBUG("The value is: %s\n", ptrRet->buffptr);
+    PDEBUG("The size is: %ld\n", ptrRet->size);
 
 
     return ptrRet; 
@@ -117,8 +120,10 @@ void aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const s
    /* Check if pointers are valid */
    if ( (buffer == NULL) && (add_entry == NULL) )
    {
-      perror("Null pointer error");
-      exit(EXIT_FAILURE);
+      //perror("Null pointer error");
+      //exit(EXIT_FAILURE);
+      PDEBUG("NULL pointer error\n");
+      return;
    }
 
    /* Check if buffer was previously full */
@@ -140,8 +145,8 @@ void aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const s
    buffer->entry[buffer->in_offs].buffptr = (const char*) add_entry->buffptr;
    buffer->entry[buffer->in_offs].size = strlen(add_entry->buffptr);
 
-   printf("The buffer value is: %s\n", buffer->entry[buffer->in_offs].buffptr);
-   printf("The size of the element is: %d\n", (int) buffer->entry[buffer->in_offs].size);
+   PDEBUG("The buffer value is: %s\n", buffer->entry[buffer->in_offs].buffptr);
+   PDEBUG("The size of the element is: %d\n", (int) buffer->entry[buffer->in_offs].size);
 
    
    if (buffer->in_offs == AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED -1u)
